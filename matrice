@@ -1,0 +1,116 @@
+#include <ESP8266WiFi.h>
+#include <Adafruit_NeoPixel.h>
+ 
+#define PIN      4
+#define N_LEDS  30
+
+Adafruit_NeoPixel strip = Adafruit_NeoPixel(N_LEDS, PIN, NEO_GRB + NEO_KHZ800);
+
+int LARGEUR = 4;
+int HAUTEUR = 5;
+int valeur = 0;
+
+uint8_t tableau_lettre[4][3]= {{0b11111,0b10001,0b11111},\
+                               {0b10010,0b11111,0b10000},\
+                               {0b11101,0b10101,0b10110},\
+                               {0b10101,0b10101,0b11111}};
+
+int delayval = 500; // delay for half a second
+
+const char* ssid = "benaur";
+const char* password = "benjaminaurelie";
+
+// Create an instance of the server
+// specify the port to listen on as an argument
+WiFiServer server(80);
+
+void setup() {
+  strip.begin();
+  delay(10);
+  // prepare GPIO4 Interupteur front
+  pinMode(4, OUTPUT);
+  digitalWrite(4, 0);
+  WiFi.begin(ssid, password);
+  // Start the server
+  server.begin();
+//  cc();
+}
+
+void display(int val,uint8_t  pos, byte red, byte green, byte blue){
+
+int8_t i;
+int8_t j;
+for(j=0;j<5;j++)
+  for(i=0;i<3;i++)
+    {
+//4 est la largeur d'une lettre
+      uint8_t led_position=(pos)+i+j*LARGEUR;
+      if((tableau_lettre[val][i]) & (1<<j) !=0)
+        strip.setPixelColor(led_position  ,red, green, blue);
+      else
+        strip.setPixelColor(led_position  ,0, 0, 0);
+    }
+  strip.show();
+}
+
+
+void loop() 
+{
+  // Check if a client has connected
+  WiFiClient client = server.available();
+  if (!client) {
+    return;
+  }
+  while(!client.available()){
+    delay(1);
+  }
+
+  // Read the first line of the request
+  String req = client.readStringUntil('\r');
+  client.flush();
+  
+  // Match the request
+  bool val0, val4, val5, val16;
+  val0=digitalRead(0);
+  val4=digitalRead(4);
+  val5=digitalRead(5);
+  val16=digitalRead(16);
+
+  String a = req.substring(5,6);
+  //String b = req.substring(6,7);
+  //String c = req.substring(7,8);
+  if(a!="e")
+  valeur = a.toInt();
+  
+  display(valeur,0, 255, 0, 0);
+
+  
+  //display(valeur,4, 255, 0, 0);
+  //display(valeur,7, 255, 0, 0);
+  client.flush();
+    // Prepare the response 
+ String s = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n<!DOCTYPE HTML>\r\n<html>\r\n";
+  if (req.indexOf("/etat/") != -1 ){
+    s += "Etat GPIO 0<br>";  
+    s += (val0)?"ON<br>":"OFF<br>";
+    s += "Etat GPIO 16<br>";  
+    s += (val16)?"ON<br>":"OFF<br>";
+    s += "Etat GPIO 4<br>";  
+    s += (val4)?"ON<br>":"OFF<br>";
+    s += "Etat GPIO 5<br>";  
+    s += (val5)?"ON<br>":"OFF<br>";
+
+    s +="<br>";
+    s += req.substring(5,7);
+    s +="<br>";
+    s+=valeur;
+    s +="<br>";
+
+    s += "</html>\n";
+
+  }
+  // Send the response to the client
+  client.print(s);
+  delay(1);
+  
+} 
