@@ -41,6 +41,7 @@ void display(int val,uint8_t  pos, byte red, byte green, byte blue){
 int8_t i;
 int8_t j;
 for(j=0;j<5;j++)
+  {
   for(i=0;i<3;i++)
     {
 //4 est la largeur d'une lettre
@@ -50,6 +51,7 @@ for(j=0;j<5;j++)
       else
         strip.setPixelColor(led_position  ,0, 0, 0);
     }
+   }
   strip.show();
 }
 
